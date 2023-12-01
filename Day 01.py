@@ -8,13 +8,41 @@ def firstDigit(characterString):
     for i in range(0,len(characterString)):
         if characterString[i].isdigit():
             return characterString[i]
+        digit = stringToDigit(characterString[i:i+5])
+        if not digit == "":
+            return digit
     return ""
 
 def lastDigit(characterString):
     for i in range(len(characterString)-1,-1,-1):
         if characterString[i].isdigit():
             return characterString[i]
+        digit = stringToDigit(characterString[i:i+5])
+        if not digit == "":
+            return digit
     return ""
+
+def stringToDigit(numberString):
+    if numberString[0:3] == "one":
+        return "1"
+    elif numberString[0:3] == "two":
+        return "2"
+    elif numberString[0:5] == "three":
+        return "3"
+    elif numberString[0:4] == "four":
+        return "4"
+    elif numberString[0:4] == "five":
+        return "5"
+    elif numberString[0:3] == "six":
+        return "6"
+    elif numberString[0:5] == "seven":
+        return "7"
+    elif numberString[0:5] == "eight":
+        return "8"
+    elif numberString[0:4] == "nine":
+        return "9"
+    else:
+        return ""
 
 lines = """dqfournine5four2jmlqcgv
 7ggzdnjxndfive
