@@ -32,13 +32,35 @@ def validateGame(gameString, maxRed, maxGreen, maxBlue):
         elif colors[2] > maxBlue:
             return 0
     return game
-        
 
 def sumValidGames(lines):
     validGameSum = 0
     for line in lines.split("\n"):
         validGameSum += validateGame(line, 12, 13, 14)
     return validGameSum
+        
+def gamePower(gameString):
+    maxRed = -1
+    maxGreen = -1
+    maxBlue = -1
+    (game, results) = gameString.split(":")
+    game = int(game[5:])
+    results = results.split(";")
+    for draw in results:
+        colors = parseDraw(draw)
+        if colors[0] > maxRed:
+            maxRed = colors[0]
+        if colors[1] > maxGreen:
+            maxGreen = colors[1]
+        if colors[2] > maxBlue:
+            maxBlue = colors[2]
+    return maxRed*maxGreen*maxBlue
+
+def sumGamePower(lines):
+    totalPower = 0
+    for line in lines.split("\n"):
+        totalPower += gamePower(line)
+    return totalPower
 
 lines = """Game 1: 12 red, 2 green, 5 blue; 9 red, 6 green, 4 blue; 10 red, 2 green, 5 blue; 8 blue, 9 red
 Game 2: 3 green, 7 red; 3 blue, 5 red; 2 green, 1 blue, 6 red; 3 green, 2 red, 3 blue
@@ -141,4 +163,4 @@ Game 98: 8 green, 1 blue, 9 red; 1 blue, 10 green; 11 green, 1 blue, 3 red; 1 bl
 Game 99: 1 red, 6 green, 3 blue; 7 blue, 1 red, 2 green; 1 red, 4 green; 6 green, 11 blue, 1 red; 4 blue, 2 green; 2 blue, 1 red, 6 green
 Game 100: 5 green, 1 red; 1 red, 6 green; 6 blue, 1 red, 6 green; 6 blue, 1 green, 2 red; 8 blue, 1 red, 4 green; 8 green, 5 blue"""
 
-print(sumValidGames(lines))
+print(sumGamePower(lines))
