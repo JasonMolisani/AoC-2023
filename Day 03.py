@@ -36,6 +36,49 @@ def sumParts(schematic):
             partNum = ""
     return ans
 
+def identifySymbols(schemArr, partRow, partColStart, partColEnd):
+    minR = max(0, partRow-1)
+    maxR = min(len(schemArr)-1, partRow+1)
+    minC = max(0, partColStart-1)
+    maxC = min(len(schemArr[0])-1, partColEnd+1)
+    r = minR
+    symbols = []
+    while r <= maxR:
+        c = minC
+        while c <= maxC:
+            if not schemArr[r][c].isdigit() and not schemArr[r][c] == ".":
+                symbols += [(schemArr[r][c],r,c)]
+            c += 1
+        r += 1
+    return symbols
+
+def sumGears(schematic):
+    schemArr = schematic.split("\n")
+    maxRow = len(schemArr)
+    maxCol = len(schemArr[0])
+    symbolDict = {}
+    for r in range(maxRow):
+        c = 0
+        partNum = ""
+        while c < maxCol:
+            if schemArr[r][c].isdigit():
+                partNum += schemArr[r][c]
+            elif not partNum == "":
+                for symbol in identifySymbols(schemArr, r, c-len(partNum), c-1):
+                    symbolDict[symbol] = symbolDict.get(symbol, []) + [int(partNum)]
+                partNum = ""
+            c += 1
+        # process part numbers that continue to the end of the row
+        if not partNum == "":
+            for symbol in identifySymbols(schemArr, r, c-len(partNum), c-1):
+                symbolDict[symbol] = symbolDict.get(symbol, []) + [int(partNum)]
+            partNum = ""
+    ans = 0
+    for symbol in symbolDict.keys():
+        if symbol[0] == "*" and len(symbolDict[symbol]) == 2:
+            ans += symbolDict[symbol][0]*symbolDict[symbol][1]
+    return ans
+
 schematic = """...............................930...................................283...................453.34.............................867....282....
 ....=.........370...........................48..456......424...-.341*.....554...*807.571............971..958............166......*..........
 ..159.........../..........539*.....73......-...*.......+....954.........*.....7.......*........*.....*....*.....405$..*.......31.........15
@@ -177,4 +220,4 @@ schematic = """...............................930...............................
 ................................405*.......................29...%1...................*........................754...#.........*.............
 961.........396.....................472.......225..739..............415............451......................................904............."""
 
-print(sumParts(schematic))
+print(sumGears(schematic))
