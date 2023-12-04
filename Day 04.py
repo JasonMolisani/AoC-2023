@@ -15,6 +15,23 @@ def scoreCards(scratchCards):
             score += math.floor(pow(2,numMatches-1))
     return score
 
+def countCards(scratchCards):
+    cards = scratchCards.split('\n')
+    cardCounts = [1]*len(cards)
+    for card in cards:
+        (cardName, values) = card.split(':')
+        (winningNums, ourNums) = values.split('|')
+        winningNums = winningNums.strip().split()
+        ourNums = ourNums.strip().split()
+        cardInd = int(cardName.split()[1]) - 1
+        numMatches = 0
+        for num in ourNums:
+            if num in winningNums:
+                numMatches += 1
+        for i in range(numMatches):
+            cardCounts[cardInd+i+1] += cardCounts[cardInd]
+    return sum(cardCounts)
+
 scratchCards = """Card   1: 61 73 92 28 96 76 32 62 44 53 | 61 17 26 13 92  5 73 29 53 42 62 46 96 32 21 97 99 28 12  4  7 44 19 71 76
 Card   2:  3 88 36 12  2  9 15 55 21 89 | 23 39 98 36  2 24  9  3 78 95 55 37 12 61 38 88 85 89 13 15 96 45 21 25 30
 Card   3: 96 44 52 56 82 89 73 50  9 68 | 39 71 64 32 13 57 56 67 34 84 51 53 41 16 38 63  5 80 70 75  7 76 85 83 18
@@ -212,4 +229,4 @@ Card 194: 49 19 18 28 94 70  6 34 24 43 | 98 91 99 46 66 20 31 80 88 61 90 56  8
 Card 195: 26 99 10 13 62 14 91 77 31 44 | 22 54 60 70 27 52 58 62 55 97 90 76 96 63 72 48 86 11 80 88 30 33 45 67 74
 Card 196:  2 29 23 92 61 87 75 63 50 55 | 83  7 74 69 16  4 72 62 51 37 22 10 84 28 94 24 89  5 53 88 33 14 99 41 35"""
 
-print(scoreCards(scratchCards))
+print(countCards(scratchCards))
