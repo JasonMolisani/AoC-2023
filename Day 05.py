@@ -1,3 +1,5 @@
+import sys
+
 '''
 Parses the input strings into a dictionary that maps a range of
 source values to the number that is added to them to generate the
@@ -48,19 +50,24 @@ def lowestLocation(almanac):
     humLocMap = parseMap(humLocMap)
 
     # Generate the locations for each initial seed
-    loc = []
-    for seed in seeds:
-        temp = applyMap(seed, seedSoilMap)
-        temp = applyMap(temp, soilFertMap)
-        temp = applyMap(temp, fertWaterMap)
-        temp = applyMap(temp, waterLightMap)
-        temp = applyMap(temp, lightTempMap)
-        temp = applyMap(temp, tempHumMap)
-        temp = applyMap(temp, humLocMap)
-        loc += [temp]
+    minLoc = sys.maxsize
+    for i in range(0, len(seeds), 2):
+        for j in range(seeds[i+1]):
+            temp = seeds[i] + j
+            temp = applyMap(temp, seedSoilMap)
+            temp = applyMap(temp, soilFertMap)
+            temp = applyMap(temp, fertWaterMap)
+            temp = applyMap(temp, waterLightMap)
+            temp = applyMap(temp, lightTempMap)
+            temp = applyMap(temp, tempHumMap)
+            temp = applyMap(temp, humLocMap)
+            minLoc = min(minLoc, temp)
+            if j % 100000 == 0:
+                print(j, seeds[i+1], sep="/", end="\r")
+        print("Finished checking seed range ", i//2 + 1, " of ", len(seeds)/2, sep="")
 
     # Return the lowest location
-    return min(loc)
+    return minLoc
 
 almanac = """seeds: 3037945983 743948277 2623786093 391282324 195281306 62641412 769611781 377903357 2392990228 144218002 1179463071 45174621 2129467491 226193957 1994898626 92402726 1555863421 340215202 426882817 207194644
 
