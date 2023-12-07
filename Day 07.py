@@ -30,14 +30,14 @@ class Hand:
                 return False
             if other.hand[i] == 'Q':
                 return True
-            if self.hand[i] == 'J':
-                return False
-            if other.hand[i] == 'J':
-                return True
             if self.hand[i] == 'T':
                 return False
             if other.hand[i] == 'T':
                 return True
+            if self.hand[i] == 'J':
+                return True
+            if other.hand[i] == 'J':
+                return False
             return int(self.hand[i]) < int(other.hand[i])
 
     def __le__(self, other):
@@ -54,9 +54,21 @@ class Hand:
     6 - high card
     '''
     def determineHandType(self):
+        # Get a count of how many times each card type appears in the hand
         cardQuantities = {}
         for card in self.hand:
             cardQuantities[card] = cardQuantities.get(card, 0) + 1
+        # Count Jokers as the additional copies of the highest existing count
+        if "J" in cardQuantities.keys():
+            jokerCount = cardQuantities["J"]
+            if len(cardQuantities.keys()) > 1:
+                del cardQuantities["J"]
+            topCount = max(cardQuantities.values())
+            for key in cardQuantities.keys():
+                if cardQuantities[key] == topCount:
+                    cardQuantities[key] += jokerCount
+                    break
+        # Determine hand type based on quantities
         if len(cardQuantities.values()) == 1:
             return 0
         elif len(cardQuantities.values()) == 2:
@@ -101,7 +113,7 @@ def calcWinnings(hands):
         winnings += hand.bid*rank
         rank += 1
     return winnings
-            
+
 hands = """424KT 464
 3J4QA 723
 94Q85 210
