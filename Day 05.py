@@ -1,4 +1,29 @@
-import sys
+'''
+Solution to Day 5, Part 2 of the 2023 Advent of Code calendar
+'''
+
+'''
+If a map has multiple adjacent ranges that have the same modifying
+value, this will combine them into a single larger range
+'''
+def consolidateMap(srcDstMap):
+    rangesToAdd = {}
+    keysToRemove = []
+    for key in srcDstMap:
+        for otherKey in srcDstMap:
+            if key == otherKey:
+                continue
+            if key[1] == (otherKey[0]-1):
+                if srcDstMap[key] == srcDstMap[otherKey]:
+                    rangesToAdd[(key[0],otherKey[1])] = srcDstMap[key]
+                    keysToRemove += [key]
+                    keysToRemove += [otherKey]
+    for key in keysToRemove:
+        del srcDstMap[key]
+    for key in rangesToAdd:
+        srcDstMap[key] = rangesToAdd[key]
+    return srcDstMap
+
 
 '''
 Parses the input strings into a dictionary that maps a range of
@@ -10,7 +35,8 @@ def parseMap(stringMap):
     for line in stringMap.split("\n"):
         (dest, source, rng) = map(int, line.split())
         ans[(source, source+rng-1)] = dest-source
-    return ans
+    return consolidateMap(ans)
+
 
 '''
 When using the generated map, you look for a key whose range
@@ -25,49 +51,199 @@ def applyMap(source, srcDstMap):
             return source + srcDstMap[key]
     return source
 
+
+'''
+Compares two ranges, specified as ordered pairs of inclusive endpoints
+with the lower endpoint as the first value of the pair
+
+Returns an int corresponding to each possibility of endpoint order:
+0 - rangeOne is entirely before rangeTwo
+1 - rangeOne contains just the low endpoint of rangeTwo
+2 - rangeOne contains the entirety of rangeTwo
+3 - rangeOne is entirely contained within rangeTwo
+4 - rangeOne contains just the high endpoint of rangeTwo
+5 - rangeOne is entirely after rangeTwo
+'''
+def compareRanges(rangeOne, rangeTwo):
+    if rangeOne[1] < rangeTwo[0]:
+        return 0
+    elif rangeOne[0] > rangeTwo[1]:
+        return 5
+    elif rangeOne[0] >= rangeTwo[0] and rangeOne[1] <= rangeTwo[1]:
+        return 3
+    elif rangeOne[0] <= rangeTwo[0] and rangeOne[1] >= rangeTwo[1]:
+        return 2
+    elif rangeOne[0] < rangeTwo[0]:
+        return 1
+    else:
+        return 4
+
+
+'''
+takes a map that goes from a-b and a map from b-c and generates a
+new map that goes directly from a-c
+'''
+def combineMaps(abMap, bcMap):
+    acMap = {}
+    bcKeysCovered = []
+    bcPartialKeys = {}
+    for abKey in abMap.keys():
+        rangesToConsolidate = [(abKey[0]+abMap[abKey], abKey[1]+abMap[abKey])]
+        while len(rangesToConsolidate) > 0:
+            currRange = rangesToConsolidate.pop()
+            foundOverlap = False
+            for bcKey in bcMap.keys():
+                if bcKey in bcKeysCovered:
+                    # once we found overlap with a range we should be checking the remaining portion in bcPartialKeys
+                    continue
+                overlapType = compareRanges(currRange,bcKey)
+                if overlapType == 0 or overlapType == 5:
+                    # no overlap
+                    continue
+                elif overlapType == 2:
+                    # currRange contains everything in bcKey
+                    if currRange[0] != bcKey[0]:
+                        rangesToConsolidate.append((currRange[0], bcKey[0]-1))
+                    if currRange[1] != bcKey[1]:
+                        rangesToConsolidate.append((bcKey[1]+1, currRange[1]))
+                    acMap[(bcKey[0]-abMap[abKey], bcKey[1]-abMap[abKey])] = abMap[abKey] + bcMap[bcKey]
+                    bcKeysCovered.append(bcKey)
+                    foundOverlap = True
+                    break
+                elif overlapType == 3:
+                    # currRange is contained entirely in bcKey
+                    if currRange[0] != bcKey[0]:
+                        bcPartialKeys[(bcKey[0], currRange[0]-1)] = bcMap[bcKey]
+                    if currRange[1] != bcKey[1]:
+                        bcPartialKeys[(currRange[1]+1, bcKey[1])] = bcMap[bcKey]
+                    acMap[(currRange[0]-abMap[abKey], currRange[1]-abMap[abKey])] = abMap[abKey] + bcMap[bcKey]
+                    bcKeysCovered.append(bcKey)
+                    foundOverlap = True
+                    break
+                elif overlapType == 1:
+                    # currRange contains the start of bcKey
+                    rangesToConsolidate.append((currRange[0], bcKey[0] - 1))
+                    bcPartialKeys[(currRange[1]+1, bcKey[1])] = bcMap[bcKey]
+                    acMap[(bcKey[0]-abMap[abKey], currRange[1]-abMap[abKey])] = abMap[abKey] + bcMap[bcKey]
+                    bcKeysCovered.append(bcKey)
+                    foundOverlap = True
+                    break
+                elif overlapType == 4:
+                    # currRange contains the end of bcKey
+                    bcPartialKeys[(bcKey[0], currRange[0]-1)] = bcMap[bcKey]
+                    rangesToConsolidate.append((bcKey[1]+1, currRange[1]))
+                    acMap[(currRange[0]-abMap[abKey], bcKey[1]-abMap[abKey])] = abMap[abKey] + bcMap[bcKey]
+                    bcKeysCovered.append(bcKey)
+                    foundOverlap = True
+                    break
+            if foundOverlap:
+                continue
+            for parKey in bcPartialKeys.keys():
+                overlapType = compareRanges(currRange,parKey)
+                if overlapType == 0 or overlapType == 5:
+                    # no overlap
+                    continue
+                elif overlapType == 2:
+                    # currRange contains everything in parKey
+                    if currRange[0] != parKey[0]:
+                        rangesToConsolidate.append((currRange[0], parKey[0]-1))
+                    if currRange[1] != parKey[1]:
+                        rangesToConsolidate.append((parKey[1]+1, currRange[1]))
+                    acMap[(parKey[0]-abMap[abKey], parKey[1]-abMap[abKey])] = abMap[abKey] + bcPartialKeys[parKey]
+                    del bcPartialKeys[parKey]
+                    foundOverlap = True
+                    break
+                elif overlapType == 3:
+                    # currRange is contained entirely in parKey
+                    if currRange[0] != parKey[0]:
+                        bcPartialKeys[(parKey[0], currRange[0]-1)] = bcPartialKeys[parKey]
+                    if currRange[1] != parKey[1]:
+                        bcPartialKeys[(currRange[1]+1, parKey[1])] = bcPartialKeys[parKey]
+                    acMap[(currRange[0]-abMap[abKey], currRange[1]-abMap[abKey])] = abMap[abKey] + bcPartialKeys[parKey]
+                    del bcPartialKeys[parKey]
+                    foundOverlap = True
+                    break
+                elif overlapType == 1:
+                    # currRange contains the start of parKey
+                    rangesToConsolidate.append((currRange[0], parKey[0] - 1))
+                    bcPartialKeys[(currRange[1]+1, parKey[1])] = bcPartialKeys[parKey]
+                    acMap[(parKey[0]-abMap[abKey], currRange[1]-abMap[abKey])] = abMap[abKey] + bcPartialKeys[parKey]
+                    del bcPartialKeys[parKey]
+                    foundOverlap = True
+                    break
+                elif overlapType == 4:
+                    # currRange contains the end of parKey
+                    bcPartialKeys[(parKey[0], currRange[0]-1)] = bcPartialKeys[parKey]
+                    rangesToConsolidate.append((parKey[1]+1, currRange[1]))
+                    acMap[(currRange[0]-abMap[abKey], parKey[1]-abMap[abKey])] = abMap[abKey] + bcPartialKeys[parKey]
+                    del bcPartialKeys[parKey]
+                    foundOverlap = True
+                    break
+            if not foundOverlap:
+                # stick with default case
+                acMap[(currRange[0]-abMap[abKey], currRange[1]-abMap[abKey])] = abMap[abKey]
+    # map any bcRanges that weren't covered using the default case for abMap
+    for key in bcMap.keys():
+        if key in bcKeysCovered:
+            continue
+        acMap[key] = bcMap[key]
+    # map any partial ranges using default case
+    for key in bcPartialKeys.keys():
+        acMap[key] = bcPartialKeys[key]
+    return consolidateMap(acMap)
+
+
 '''
 This is the main function that reads the input and finds the lowest
 location that corresponds to any of the initial seeds.
 '''
 def lowestLocation(almanac):
-    # Split the almanac into the relevant sections
+    # Parse the almanac into a list of seeds and a single map from seeds to locations
     (seeds, almanac) = almanac.split("\n\nseed-to-soil map:\n")
-    (seedSoilMap, almanac) = almanac.split("\n\nsoil-to-fertilizer map:\n")
-    (soilFertMap, almanac) = almanac.split("\n\nfertilizer-to-water map:\n")
-    (fertWaterMap, almanac) = almanac.split("\n\nwater-to-light map:\n")
-    (waterLightMap, almanac) = almanac.split("\n\nlight-to-temperature map:\n")
-    (lightTempMap, almanac) = almanac.split("\n\ntemperature-to-humidity map:\n")
-    (tempHumMap, humLocMap) = almanac.split("\n\nhumidity-to-location map:\n")
-
-    # Convert the sections into usable lists and dictionaries
     seeds = list(map(int, seeds[7:].split()))
-    seedSoilMap = parseMap(seedSoilMap)
-    soilFertMap = parseMap(soilFertMap)
-    fertWaterMap = parseMap(fertWaterMap)
-    waterLightMap = parseMap(waterLightMap)
-    lightTempMap = parseMap(lightTempMap)
-    tempHumMap = parseMap(tempHumMap)
-    humLocMap = parseMap(humLocMap)
+    (mapStr, almanac) = almanac.split("\n\nsoil-to-fertilizer map:\n")
+    seedMap = parseMap(mapStr)
+    (mapStr, almanac) = almanac.split("\n\nfertilizer-to-water map:\n")
+    seedMap = combineMaps(seedMap,parseMap(mapStr))
+    (mapStr, almanac) = almanac.split("\n\nwater-to-light map:\n")
+    seedMap = combineMaps(seedMap,parseMap(mapStr))
+    (mapStr, almanac) = almanac.split("\n\nlight-to-temperature map:\n")
+    seedMap = combineMaps(seedMap,parseMap(mapStr))
+    (mapStr, almanac) = almanac.split("\n\ntemperature-to-humidity map:\n")
+    seedMap = combineMaps(seedMap,parseMap(mapStr))
+    (mapStr, almanac) = almanac.split("\n\nhumidity-to-location map:\n")
+    seedMap = combineMaps(seedMap,parseMap(mapStr))
+    seedMap = combineMaps(seedMap,parseMap(almanac))
 
     # Generate the locations for each initial seed
-    minLoc = sys.maxsize
+    seedRanges = []
     for i in range(0, len(seeds), 2):
-        for j in range(seeds[i+1]):
-            temp = seeds[i] + j
-            temp = applyMap(temp, seedSoilMap)
-            temp = applyMap(temp, soilFertMap)
-            temp = applyMap(temp, fertWaterMap)
-            temp = applyMap(temp, waterLightMap)
-            temp = applyMap(temp, lightTempMap)
-            temp = applyMap(temp, tempHumMap)
-            temp = applyMap(temp, humLocMap)
-            minLoc = min(minLoc, temp)
-            if j % 100000 == 0:
-                print(j, seeds[i+1], sep="/", end="\r")
-        print("Finished checking seed range ", i//2 + 1, " of ", len(seeds)/2, sep="")
+        seedRanges.append((seeds[i],seeds[i]+seeds[i+1]-1))
+    loc = []
+    for seedRange in seedRanges:
+        checkedRangeMin = False
+        for key in seedMap.keys():
+            overlapType = compareRanges(seedRange, key)
+            if overlapType == 0 or overlapType == 5:
+                # no overlap
+                continue
+            elif overlapType == 2 or overlapType == 1:
+                # seedRange contains everything in key or
+                # seedRange contains the start of key
+                loc.append(applyMap(key[0], seedMap))
+            elif overlapType == 3 or overlapType == 4:
+                # seedRange is contained entirely in key or
+                # seedRange contains the end of key
+                checkedRangeMin = True
+                loc.append(applyMap(seedRange[0], seedMap))
+        if not checkedRangeMin:
+            # Even if not covered in the overlap, we need to
+            # check the start of a seedRange in case the default
+            # mapping is the lowest location
+            loc.append(applyMap(seedRange[0], seedMap))
 
     # Return the lowest location
-    return minLoc
+    return min(loc)
 
 almanac = """seeds: 3037945983 743948277 2623786093 391282324 195281306 62641412 769611781 377903357 2392990228 144218002 1179463071 45174621 2129467491 226193957 1994898626 92402726 1555863421 340215202 426882817 207194644
 
