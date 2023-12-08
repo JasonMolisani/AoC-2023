@@ -216,9 +216,31 @@ def lowestLocation(almanac):
     seedMap = combineMaps(seedMap,parseMap(almanac))
 
     # Generate the locations for each initial seed
+    seedRanges = []
+    for i in range(0, len(seeds), 2):
+        seedRanges.append((seeds[i],seeds[i]+seeds[i+1]-1))
     loc = []
-    for seed in seeds:
-        loc += [applyMap(seed, seedMap)]
+    for seedRange in seedRanges:
+        checkedRangeMin = False
+        for key in seedMap.keys():
+            overlapType = compareRanges(seedRange, key)
+            if overlapType == 0 or overlapType == 5:
+                # no overlap
+                continue
+            elif overlapType == 2 or overlapType == 1:
+                # seedRange contains everything in key or
+                # seedRange contains the start of key
+                loc.append(applyMap(key[0], seedMap))
+            elif overlapType == 3 or overlapType == 4:
+                # seedRange is contained entirely in key or
+                # seedRange contains the end of key
+                checkedRangeMin = True
+                loc.append(applyMap(seedRange[0], seedMap))
+        if not checkedRangeMin:
+            # Even if not covered in the overlap, we need to
+            # check the start of a seedRange in case the default
+            # mapping is the lowest location
+            loc.append(applyMap(seedRange[0], seedMap))
 
     # Return the lowest location
     return min(loc)
