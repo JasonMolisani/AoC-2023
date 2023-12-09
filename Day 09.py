@@ -1,4 +1,4 @@
-def sumExtrapolatedValues(lines):
+def sumExtrapolatedNextValues(lines):
     sum = 0
     for line in lines.split("\n"):
         sum += extrapolateNextValue(*list(map(int, line.split())))
@@ -17,6 +17,29 @@ def extrapolateNextValue(*nums):
         differences.append(num-prevNum)
         prevNum = num
     return prevNum + extrapolateNextValue(*differences)
+
+
+def sumExtrapolatedPrevValues(lines):
+    sum = 0
+    for line in lines.split("\n"):
+        sum += extrapolatePrevValue(*list(map(int, line.split())))
+    return sum
+
+
+def extrapolatePrevValue(*nums):
+    if all(num == 0 for num in nums):
+        return 0
+    prevNum = None
+    firstNum = None
+    differences = []
+    for num in nums:
+        if prevNum is None:
+            prevNum = num
+            firstNum = num
+            continue
+        differences.append(num-prevNum)
+        prevNum = num
+    return firstNum - extrapolatePrevValue(*differences)
 
 
 puzzleInput = """-7 4 41 121 272 539 997 1790 3238 6096 12113 25120 52964 110690 225447 443645 840883 1535008 2702137 4594155 7553340
@@ -220,4 +243,5 @@ puzzleInput = """-7 4 41 121 272 539 997 1790 3238 6096 12113 25120 52964 110690
 1 6 25 68 141 255 458 900 1941 4312 9339 19240 37505 69369 122388 207128 337977 534090 820477 1229244 1800997
 17 27 53 113 230 432 752 1228 1903 2825 4047 5627 7628 10118 13170 16862 21277 26503 32633 39765 48002"""
 
-print(sumExtrapolatedValues(puzzleInput))
+print(sumExtrapolatedNextValues(puzzleInput))
+print(sumExtrapolatedPrevValues(puzzleInput))
