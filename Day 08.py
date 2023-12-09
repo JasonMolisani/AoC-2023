@@ -1,18 +1,132 @@
 def findMinSteps(lines):
     # Grab the directions and identify the minimum period before the directions start looping
     (RL, lines) = lines.split("\n\n")
+    divisors = list(findAllDivisors(len(RL)))
+    divisors.sort(reverse=True)
+    minPeriod = divisors[0]
+    for divisor in divisors[1:-1]:
+        temp = RL
+        pieces = []
+        while len(temp) > 0:
+            pieces += [temp[:divisor]]
+            temp = temp[divisor:]
+        allPiecesMatch = True
+        for i in range(1, len(pieces)):
+            if pieces[i] != pieces[i-1]:
+                allPiecesMatch = False
+                break
+        if allPiecesMatch:
+            minPeriod = divisor
+
+    # identify the starting nodes
     nodes = {}
     for line in lines.split("\n"):
         (name, pair) = line.split(" = (")
         (r, l) = pair[:-1].split(", ")
         nodes[name] = (r, l)
-    currNode = "AAA"
+    currNodes = []
+    for nodeKey in nodes.keys():
+        if nodeKey[-1] == "A":
+            currNodes.append(nodeKey)
+
+    # Check to see if all steps hit a 'z' at a multiple of the minPeriod of the directions
+    steps = []
+    for node in currNodes:
+        nodeSteps = 0
+        while node[-1] != 'Z':
+            nextDir = RL[nodeSteps % len(RL)] == "R"
+            node = nodes[node][nextDir]
+            nodeSteps += 1
+        steps.append(nodeSteps)
+    stepsMultipleOfPeriod = True
+    periodCounts = []
+    for stepCount in steps:
+        if stepCount % minPeriod != 0:
+            stepsMultipleOfPeriod = False
+            break
+        periodCounts.append(stepCount//minPeriod)
+    if stepsMultipleOfPeriod:
+        return minPeriod*findLeastCommonMultiple(*periodCounts)
+
+    # Default to brute force calculating all the steps
     stepsTaken = 0
-    while not currNode == "ZZZ":
+    while not allNodesEndInZ(currNodes):
         nextDir = RL[stepsTaken % len(RL)] == "R"
-        currNode = nodes[currNode][nextDir]
+        for i in range(len(currNodes)):
+            currNodes[i] = nodes[currNodes[i]][nextDir]
         stepsTaken += 1
+        if stepsTaken % 100000 == 0:
+            print(stepsTaken, " steps taken", end="\r")
     return stepsTaken
+
+
+def nextPrime(primes):
+    if len(primes) == 0:
+        return 2
+    currPoss = primes[-1]
+    hasPrimeDivisor = True
+    while hasPrimeDivisor:
+        currPoss += 1
+        hasPrimeDivisor = False
+        for prime in primes:
+            if currPoss % prime == 0:
+                hasPrimeDivisor = True
+                break
+    return currPoss
+
+
+def findPrimeDivisors(num):
+    primes = [2]
+    while primes[-1] < num:
+        primes.append(nextPrime(primes))
+    divisors = []
+    for prime in primes:
+        divisor = prime
+        while num % divisor == 0:
+            divisors.append(prime)
+            divisor *= prime
+    divisors.sort()
+    return divisors
+
+
+def findCombinations(*nums):
+    if len(nums) == 0:
+        return set()
+    remCombos = findCombinations(*nums[1:])
+    combos = {nums[0]}
+    for num in remCombos:
+        combos.add(num*num[0])
+    combos.update(remCombos)
+    return combos
+
+
+def findAllDivisors(num):
+    primeDivisors = findPrimeDivisors(num)
+    divisors = {1}
+    divisors.update(findCombinations(*primeDivisors))
+    return divisors
+
+
+def findLeastCommonMultiple(*nums):
+    lcmPrimes = {}
+    for num in nums:
+        primesArr = findPrimeDivisors(num)
+        primes = {}
+        for prime in primesArr:
+            primes[prime] = primes.get(prime, 0) + 1
+        for prime in primes.keys():
+            lcmPrimes[prime] = max(lcmPrimes.get(prime, 0), primes[prime])
+    lcm = 1
+    for prime in lcmPrimes.keys():
+        lcm *= pow(prime, lcmPrimes[prime])
+    return lcm
+
+
+def allNodesEndInZ(nodes):
+    for node in nodes:
+        if node[-1] != "Z":
+            return False
+    return True
 
 
 puzzleInput = """LRLRLLRRLLRRLRRLRRRLLRLRLRLRLRRLRRRLRLRRLRLLRRLLRLRRLRLRRLLRRRLRLRLRRRLRLLRRRLLLLLLRRRLRRLLLRRLRLRRLRRLRLRRLRRLLRRLRRRLRRRLLRLRLLLRRLLLRRLLRRLRLLRRRLRRRLRRRLRLRRLRRLLLRRRLRRLLRRLRRRLRLRLRRLRRLRRRLRRRLRLLLLRRRLRLRRRLRRRLLRLRRLRRLLRLLLRRLRLRRLRRRLRRRLRRRLLRRRLRLLRRRLRRRLRRRLRRRLRRLRRRLLRRLLRLRLRRRLRRRLRLRRRR
